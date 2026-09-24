@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { AnimatedCard as Card } from '@/components/ui/card';
 
 
@@ -8,7 +8,7 @@ import { useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './ui/tooltip';
 import { MotionConfig } from 'motion/react';
-import { LayoutDashboard, Users, Landmark, Wallet, Settings, Moon, Sun, Menu, X, LogOut, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, Landmark, Wallet, Settings, Moon, Sun, Menu, X, LogOut, ChevronRight, FileText, Archive, FileOutput, FolderOpen } from 'lucide-react';
 import { useAuth } from './auth-context';
 import { useTheme } from './theme-context';
 import { Avatar } from './avatar';
@@ -18,6 +18,7 @@ import { BlurFade } from './ui/blur-fade';
 import { useCompactSidebar } from './use-compact-sidebar';
 
 const navigationGroups = [
+  { name: 'RELEVÉS ET ARCHIVES', items: [{ href: '/conversions', label: 'Conversions', icon: FileText }, { href: '/client-space', label: 'Espace clients', icon: FolderOpen }, { href: '/archives', label: 'Archives', icon: Archive }, { href: '/templates', label: 'Modèles d’export', icon: FileOutput }] },
   { name: 'ESPACE DE TRAVAIL', items: [{ href: '/dashboard', label: 'Vue d’ensemble', icon: LayoutDashboard }] },
   { name: 'RÉFÉRENTIELS', items: [{ href: '/clients', label: 'Clients', icon: Users }, { href: '/banks', label: 'Banques', icon: Landmark }, { href: '/bank-accounts', label: 'Comptes bancaires', icon: Wallet }] },
   { name: 'CONFIGURATION', items: [{ href: '/users', label: 'Utilisateurs', icon: Users }, { href: '/settings', label: 'Paramètres', icon: Settings }] },
@@ -37,8 +38,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     else if (isAuthenticated && authRoute) router.replace('/dashboard');
   }, [isReady, isAuthenticated, authRoute, router]);
 
-  const access: Record<string, string> = { '/dashboard': 'dashboard.read', '/clients': 'clients.read', '/banks': 'banks.read', '/bank-accounts': 'accounts.read' };
-  const permitted = (href: string) => href === '/users' ? user?.role === 'Admin' : !access[href] || can(access[href]);
+  const access: Record<string, string> = { '/conversions': 'statements.read', '/client-space': 'statements.read', '/archives': 'statements.read', '/templates': 'statements.read', '/dashboard': 'dashboard.read', '/clients': 'clients.read', '/banks': 'banks.read', '/bank-accounts': 'accounts.read' };
+  const permitted = (href: string) => href === '/users' ? user?.role === 'Admin' : href.startsWith('/statements/') ? can('statements.read') : !access[href] || can(access[href]);
   const groups = navigationGroups.map(g => ({ ...g, items: g.items.filter(i => permitted(i.href)) })).filter(g => g.items.length);
   const active = groups.flatMap(g => g.items).find(i => i.href === pathname);
   const closeDrawer = () => drawer.current?.close();
@@ -76,3 +77,4 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   </div></Sidebar></TooltipProvider></MotionConfig>;
 }
+

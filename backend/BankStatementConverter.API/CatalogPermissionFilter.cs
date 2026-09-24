@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -17,6 +17,12 @@ public class CatalogPermissionFilter : IAuthorizationFilter
             "Accounts" => "accounts", "Dashboard" => "dashboard",
             "CatalogDeletion" => context.RouteData.Values["resource"]?.ToString(), _ => null
         };
+        if (controller is "Statements" or "ExportTemplates" or "StatementProfiles")
+        {
+            var required = context.HttpContext.Request.Method == "GET" || context.RouteData.Values["action"]?.ToString() == "Preview" ? "statements.read" : "statements.write";
+            if (!user.HasClaim("permission", required) || !user.HasClaim("permission", "accounts.read") || !user.HasClaim("permission", "clients.read")) context.Result = new ForbidResult();
+            return;
+        }
         if (module is null) return;
         var method = context.HttpContext.Request.Method;
         var operation = controller == "CatalogDeletion" || method == "DELETE" && controller is not ("ClientPhoto" or "BankLogo") ? "delete" : method == "GET" ? "read" : "write";
@@ -26,3 +32,4 @@ public class CatalogPermissionFilter : IAuthorizationFilter
         if (!allowed) context.Result = new ForbidResult();
     }
 }
+

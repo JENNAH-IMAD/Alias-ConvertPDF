@@ -3,6 +3,7 @@ using System;
 using BankStatementConverter.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BankStatementConverter.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260924161432_StatementWorkspace")]
+    partial class StatementWorkspace
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -123,6 +126,7 @@ namespace BankStatementConverter.Infrastructure.Migrations
             modelBuilder.Entity("BankStatementConverter.Domain.BankStatement", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("ArchivedAt")
@@ -230,6 +234,7 @@ namespace BankStatementConverter.Infrastructure.Migrations
             modelBuilder.Entity("BankStatementConverter.Domain.BankStatementProfile", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("BankId")
@@ -298,6 +303,7 @@ namespace BankStatementConverter.Infrastructure.Migrations
             modelBuilder.Entity("BankStatementConverter.Domain.BankTransaction", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<decimal?>("Balance")
@@ -437,6 +443,7 @@ namespace BankStatementConverter.Infrastructure.Migrations
             modelBuilder.Entity("BankStatementConverter.Domain.ExportTemplate", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("Code")
@@ -507,6 +514,7 @@ namespace BankStatementConverter.Infrastructure.Migrations
             modelBuilder.Entity("BankStatementConverter.Domain.ExportTemplateField", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -549,6 +557,7 @@ namespace BankStatementConverter.Infrastructure.Migrations
             modelBuilder.Entity("BankStatementConverter.Domain.ProcessingHistory", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("Action")
@@ -588,6 +597,7 @@ namespace BankStatementConverter.Infrastructure.Migrations
             modelBuilder.Entity("BankStatementConverter.Domain.StatementExport", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("BankStatementId")

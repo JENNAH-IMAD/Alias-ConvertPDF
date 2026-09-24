@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Threading.RateLimiting;
 using BankStatementConverter.API;
 using BankStatementConverter.Application;
@@ -48,9 +48,21 @@ builder.Services.AddAuthorization();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? ["http://localhost:3001"]).AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddRateLimiter(o => {
     o.RejectionStatusCode = 429;
+    o.AddPolicy("statements", ctx => RateLimitPartition.GetFixedWindowLimiter(ctx.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new() { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
     o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new() { PermitLimit = 20, Window = TimeSpan.FromMinutes(1) }));
 });
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddSingleton<IPdfAnalyzer, PdfAnalyzer>();
+builder.Services.AddSingleton<IOcrService, TesseractOcrService>();
+builder.Services.AddSingleton<IStatementValidator, StatementValidator>();
+builder.Services.AddSingleton<IStatementExporter, DelimitedStatementExporter>();
+builder.Services.AddScoped<StatementService>();
+builder.Services.AddScoped<ExportTemplateService>();
+builder.Services.AddScoped<StatementExportService>();
+builder.Services.AddScoped<ProfileTransactionExtractor>();
+builder.Services.AddScoped<PdfProcessingService>();
+builder.Services.AddHostedService<StatementWorker>();
 builder.Services.AddScoped<IBankService, BankService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ICatalogDeletionService, CatalogDeletionService>();
@@ -63,7 +75,7 @@ var app = builder.Build();
 app.Use(async (ctx, next) => {
     try { await next(); }
     catch (Exception ex) {
-        var status = ex switch { AppException a => a.Status, DbUpdateException { InnerException: PostgresException { SqlState: "23505" or "23503" or "23001" } } => 409, BadHttpRequestException b => b.StatusCode, OperationCanceledException => 499, _ => 500 };
+        var status = ex switch { AppException a => a.Status, DbUpdateConcurrencyException => 409, DbUpdateException { InnerException: PostgresException { SqlState: "23505" or "23503" or "23001" } } => 409, BadHttpRequestException b => b.StatusCode, OperationCanceledException => 499, _ => 500 };
         var message = ex is AppException ? ex.Message : status == 409 ? "Doublon ou élément encore utilisé : modification impossible." : status == 413 ? "Fichier trop volumineux." : "Erreur serveur. Consultez les journaux.";
         app.Logger.Log(status >= 500 ? LogLevel.Error : LogLevel.Warning, ex, "Requête échouée : {Status}", status);
         if (!ctx.Response.HasStarted) { ctx.Response.StatusCode = status; await ctx.Response.WriteAsJsonAsync(new { title = message, status, traceId = ctx.TraceIdentifier }); }
@@ -81,3 +93,5 @@ using (var scope = app.Services.CreateScope())
 }
 app.Run();
 public partial class Program;
+
+

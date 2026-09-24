@@ -26,6 +26,10 @@ public class CatalogService<TEntity, TInput, TDto>(AppDbContext db, ICatalogDefi
             Validation.Require(((string?)property.GetValue(input))?.Length <= 2000, $"{property.Name} : maximum 2000 caractères.");
         await definition.ValidateAsync(input, db, ct);
         var entity = id.HasValue ? await definition.Query(db).FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new AppException(404, "Élément introuvable.") : new TEntity();
+        if (entity is BankAccount account && input is BankAccountInput change &&
+            (account.ClientId != change.ClientId || account.BankId != change.BankId || account.Currency != change.Currency || account.AccountNumber != change.AccountNumber) &&
+            await db.BankStatements.AnyAsync(s => s.BankAccountId == account.Id, ct))
+            throw new AppException(409, "Ce compte possède des relevés. Son client, sa banque, sa devise et son numéro ne peuvent plus être changés.");
         definition.Apply(input, entity, db);
         if (!id.HasValue) db.Add(entity);
         await db.SaveChangesAsync(ct);

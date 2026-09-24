@@ -1,4 +1,4 @@
-using BankStatementConverter.Application;
+﻿using BankStatementConverter.Application;
 using BankStatementConverter.Domain;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -42,7 +42,8 @@ public class UserManagementService(AppDbContext db) : IUserManagementService
         Validation.Require(input.Role is "Admin" or "User", "Rôle invalide.");
         Validation.Require(input.Permissions is not null && input.Permissions.All(Permissions.All.Contains), "Permission inconnue.");
         var permissions = input.Permissions!.Distinct().Order().ToArray();
-        foreach (var module in new[] { "clients", "banks", "accounts" })
+        Validation.Require(!permissions.Any(p => p.StartsWith("statements.")) || permissions.Contains("clients.read") && permissions.Contains("accounts.read"), "Les relevés nécessitent la consultation des clients et comptes.");
+        foreach (var module in new[] { "clients", "banks", "accounts", "statements" })
             Validation.Require(!permissions.Any(p => p == module + ".write" || p == module + ".delete") || permissions.Contains(module + ".read"), "La modification ou suppression nécessite le droit de consultation.");
         Validation.Require(!permissions.Contains("accounts.write") || (permissions.Contains("clients.read") && permissions.Contains("banks.read")), "La gestion des comptes nécessite la consultation des clients et banques.");
         Validation.Require(!permissions.Contains("clients.delete") && !permissions.Contains("banks.delete") || permissions.Contains("accounts.delete"), "La suppression avec comptes associés nécessite le droit de supprimer les comptes.");
@@ -80,3 +81,4 @@ public class UserManagementService(AppDbContext db) : IUserManagementService
         if (changed == 0) throw new AppException(404, "Utilisateur introuvable.");
     }
 }
+

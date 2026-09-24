@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AnimatedCard as Card } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import { useApi } from '@/services/use-api';
 import { Page, request } from '@/services/api';
 
 type ManagedUser = { id: string; name: string; email: string; role: string; isActive: boolean; permissions: string[]; createdAt: string; updatedAt: string };
-const modules = [{key:'dashboard',label:'Tableau de bord'}, {key:'clients',label:'Clients'}, {key:'banks',label:'Banques'}, {key:'accounts',label:'Comptes bancaires'}];
+const modules = [{key:'dashboard',label:'Tableau de bord'}, {key:'clients',label:'Clients'}, {key:'banks',label:'Banques'}, {key:'accounts',label:'Comptes bancaires'}, {key:'statements',label:'Relevés et archives'}];
 const actions = [{key:'read',label:'Consulter'}, {key:'write',label:'Créer / modifier'}, {key:'delete',label:'Supprimer'}];
 
 function UserEditor({initial, onClose, onSaved}:{initial:ManagedUser|null;onClose:()=>void;onSaved:()=>void}) {
@@ -28,8 +28,8 @@ function UserEditor({initial, onClose, onSaved}:{initial:ManagedUser|null;onClos
   const self=initial?.id===user?.id;
   function toggle(permission:string,checked:boolean){
     const next=new Set(selected);
-    if(checked){next.add(permission);const area=permission.split('.')[0];next.add(area+'.read');if(permission==='accounts.write'){next.add('clients.read');next.add('banks.read');}if(permission==='clients.delete'||permission==='banks.delete'){next.add('accounts.read');next.add('accounts.delete');}}
-    else {next.delete(permission);if(permission.endsWith('.read')){const area=permission.split('.')[0];next.delete(area+'.write');next.delete(area+'.delete');}if(permission==='clients.read'||permission==='banks.read')next.delete('accounts.write');if(permission==='accounts.delete'||permission==='accounts.read'){next.delete('clients.delete');next.delete('banks.delete');}}
+    if(checked){if(permission.startsWith('statements.')){next.add('clients.read');next.add('accounts.read');}next.add(permission);const area=permission.split('.')[0];next.add(area+'.read');if(permission==='accounts.write'){next.add('clients.read');next.add('banks.read');}if(permission==='clients.delete'||permission==='banks.delete'){next.add('accounts.read');next.add('accounts.delete');}}
+    else {if(permission==='clients.read'||permission==='accounts.read'){next.delete('statements.read');next.delete('statements.write');}next.delete(permission);if(permission.endsWith('.read')){const area=permission.split('.')[0];next.delete(area+'.write');next.delete(area+'.delete');}if(permission==='clients.read'||permission==='banks.read')next.delete('accounts.write');if(permission==='accounts.delete'||permission==='accounts.read'){next.delete('clients.delete');next.delete('banks.delete');}}
     setPermissions([...next]);
   }
   async function save(event:FormEvent){event.preventDefault();if(busy||!catalog)return;if(!initial&&password!==passwordConfirmation){setError('Les deux mots de passe doivent être identiques.');return;}setBusy(true);setError('');try{await request('/users'+(initial?'/'+initial.id:''),{method:initial?'PUT':'POST',body:JSON.stringify({name,email,role,isActive:active,permissions:role==='Admin'?catalog.all:selected,password:initial?null:password,version:initial?.updatedAt??null})});onSaved();onClose();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
@@ -42,7 +42,7 @@ function UserEditor({initial, onClose, onSaved}:{initial:ManagedUser|null;onClos
       {!initial&&<label className="block">Confirmer le mot de passe<Input className="ui-input mt-2" type="password" autoComplete="new-password" required maxLength={128} value={passwordConfirmation} onChange={e=>setPasswordConfirmation(e.target.value)}/></label>}
       {self&&<p className="ui-description">Votre propre compte ne peut pas être désactivé ou rétrogradé.</p>}
       <section className="ui-summary"><h3 className="font-semibold mb-3">Permissions par fonctionnalité</h3><p className="ui-description mb-4">{role==='Admin'?'Les administrateurs disposent de tous les droits, y compris la gestion des utilisateurs.':'Les dépendances nécessaires sont sélectionnées automatiquement. Supprimer un client ou une banque peut supprimer ses comptes associés.'}</p>
-      <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr><th className="text-left p-2">Fonctionnalité</th>{actions.map(a=><th className="p-2" key={a.key}>{a.label}</th>)}</tr></thead><tbody>{modules.map(m=><tr key={m.key}><th className="text-left p-2">{m.label}</th>{actions.map(a=><td className="text-center p-3" key={a.key}>{m.key==='dashboard'&&a.key!=='read'?'—':<input type="checkbox" aria-label={`${m.label} : ${a.label}`} disabled={role==='Admin'} checked={role==='Admin'||selected.includes(m.key+'.'+a.key)} onChange={e=>toggle(m.key+'.'+a.key,e.target.checked)}/>}</td>)}</tr>)}</tbody></table></div></section>
+      <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr><th className="text-left p-2">Fonctionnalité</th>{actions.map(a=><th className="p-2" key={a.key}>{a.label}</th>)}</tr></thead><tbody>{modules.map(m=><tr key={m.key}><th className="text-left p-2">{m.label}</th>{actions.map(a=><td className="text-center p-3" key={a.key}>{(m.key==='dashboard'&&a.key!=='read'||m.key==='statements'&&a.key==='delete')?'—':<input type="checkbox" aria-label={`${m.label} : ${a.label}`} disabled={role==='Admin'} checked={role==='Admin'||selected.includes(m.key+'.'+a.key)} onChange={e=>toggle(m.key+'.'+a.key,e.target.checked)}/>}</td>)}</tr>)}</tbody></table></div></section>
       {initial&&<p className="ui-description">L’enregistrement déconnecte les sessions existantes de cet utilisateur.{self?' Vous devrez vous reconnecter.':''}</p>}
     </fieldset><LoadState error={error||catalogError} loading={loading}/><div className="flex justify-end gap-3"><Button variant="ghost" type="button" className="button-secondary" disabled={busy} onClick={onClose}>Annuler</Button><Button variant="ghost" className="button-primary" disabled={busy||loading||!catalog}>{busy?'Enregistrement…':'Enregistrer'}</Button></div></form>
   </Dialog>;
@@ -68,3 +68,5 @@ export default function UsersPage(){
     {action&&<Dialog title={action.kind==='delete'?'Supprimer l’utilisateur':action.kind==='password'?'Réinitialiser le mot de passe':'Révoquer les sessions'} onClose={()=>setAction(null)} busy={busy}><form onSubmit={execute} className="space-y-5"><p className="font-semibold">{action.user.name} · {action.user.email}</p><p className="ui-description">{action.kind==='delete'?'Le compte sera supprimé définitivement. Les clients, banques et comptes bancaires sont conservés.':'Les sessions existantes seront invalidées dès la prochaine requête.'}</p>{action.kind==='password'?<label className="block">Nouveau mot de passe<Input type="password" className="ui-input mt-2" required minLength={12} maxLength={128} autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)}/><small>12 caractères minimum, majuscule, minuscule et chiffre.</small></label>:<label className="flex gap-2"><input required type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>Je confirme cette action.</label>}{action.kind==="password"&&<label className="block">Confirmer le mot de passe<Input type="password" className="ui-input mt-2" required maxLength={128} autoComplete="new-password" value={passwordConfirmation} onChange={e=>setPasswordConfirmation(e.target.value)}/></label>}{actionError&&<p role="alert" className="danger-button">{actionError}</p>}<Button variant="ghost" className="button-primary" disabled={busy}>{busy?'Traitement…':'Confirmer'}</Button></form></Dialog>}
   </div>;
 }
+
+

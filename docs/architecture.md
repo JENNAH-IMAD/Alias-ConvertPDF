@@ -116,7 +116,7 @@ La palette Monochromatic Minimalism est centralisée dans `app/monochrome.css`.
 Clair : fond et surfaces #E0E0E0, texte et actions #121212, surfaces secondaires #B0B0B0, bordures #888888 et texte secondaire #444444.
 Sombre : fond et surfaces #121212, texte et actions #E0E0E0, texte secondaire #B0B0B0, bordures et surfaces secondaires #444444, focus #888888.
 Les erreurs et suppressions conservent une couleur sémantique distincte.
-Les logos des assets sont affichés en niveaux de gris, sans modifier les fichiers.
+Le composant Brand recolore le logo et le symbole via des filtres SVG : #E0E0E0 sur #121212 en sombre, couleurs inversées en clair. Les fichiers des assets restent intacts.
 
 Les composants shadcn/ui locaux comprennent Button, Input, Textarea, Card,
 Badge, Skeleton et Tooltip. Ils sont utilisés dans les pages et formulaires.
@@ -138,4 +138,5 @@ https://magicui.design/docs/components/blur-fade et https://motion.dev/docs/reac
 Les licences locales figurent dans `src/components/ui`.
 
 Aucune modification des API, des permissions ou de la base de données.
+
 

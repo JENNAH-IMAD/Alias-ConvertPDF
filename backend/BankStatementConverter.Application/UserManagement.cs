@@ -1,9 +1,9 @@
-namespace BankStatementConverter.Application;
+﻿namespace BankStatementConverter.Application;
 
 public static class Permissions
 {
-    public static readonly string[] All = ["dashboard.read", "clients.read", "clients.write", "clients.delete", "banks.read", "banks.write", "banks.delete", "accounts.read", "accounts.write", "accounts.delete"];
-    public static readonly string[] Default = ["dashboard.read", "clients.read", "clients.write", "clients.delete", "banks.read", "accounts.read", "accounts.write", "accounts.delete"];
+    public static readonly string[] All = ["dashboard.read", "clients.read", "clients.write", "clients.delete", "banks.read", "banks.write", "banks.delete", "accounts.read", "accounts.write", "accounts.delete", "statements.read", "statements.write"];
+    public static readonly string[] Default = ["dashboard.read", "clients.read", "clients.write", "clients.delete", "banks.read", "accounts.read", "accounts.write", "accounts.delete", "statements.read", "statements.write"];
 }
 public record ManagedUserDto(Guid Id, string Name, string Email, string Role, bool IsActive, string[] Permissions, DateTime CreatedAt, DateTime UpdatedAt);
 public record SaveUserInput(string Name, string Email, string Role, bool IsActive, string[] Permissions, string? Password, DateTime? Version);
@@ -17,3 +17,4 @@ public interface IUserManagementService
     Task ResetPasswordAsync(Guid id, string password, CancellationToken ct);
     Task RevokeSessionsAsync(Guid id, CancellationToken ct);
 }
+

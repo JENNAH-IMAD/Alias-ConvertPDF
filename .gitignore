@@ -16,3 +16,6 @@ output/
 
 # Configuration locale contenant les secrets de developpement
 backend/BankStatementConverter.API/appsettings.Development.json
+
+# Private statement originals and exports (never serve as static assets).
+**/private-statements/

@@ -71,3 +71,4 @@ input[type="checkbox"]{accent-color:var(--primary);width:16px;height:16px;flex-s
 /* Resolve aliases on the theme element, not on the document root. */
 [data-theme]{--card:var(--surface);--card-foreground:var(--foreground);--secondary:var(--surface-alt);--secondary-foreground:var(--foreground);--muted-foreground:var(--muted);--accent-foreground:var(--background);--input:var(--border)}
 
+.statement-table{width:100%;border-collapse:collapse;font-size:12px}.statement-table th{text-align:left;color:var(--muted);font-weight:500;padding:12px 8px;border-bottom:1px solid var(--border);white-space:nowrap}.statement-table td{padding:8px;border-bottom:1px solid var(--border)}.statement-timeline{border-left:1px solid var(--border);padding-left:22px;display:grid;gap:22px}.statement-timeline li{position:relative;font-size:13px}.statement-timeline li::before{content:'';position:absolute;width:7px;height:7px;border-radius:50%;background:var(--foreground);left:-26px;top:7px}
