@@ -1,0 +1,8 @@
+.local
+**/bin
+**/obj
+**/node_modules
+**/.next
+**/.git
+**/.env*
+uploads

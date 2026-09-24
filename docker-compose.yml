@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bankconverter
+      POSTGRES_USER: converter
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U converter -d bankconverter"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      ConnectionStrings__Default: Host=postgres;Database=bankconverter;Username=converter;Password=${POSTGRES_PASSWORD}
+      Jwt__Key: ${JWT_KEY:?Set JWT_KEY in .env}
+      Seed__AdminEmail: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      Database__AutoMigrate: "true"
+      Swagger__Enabled: "true"
+      Cors__Origins__0: ${FRONTEND_ORIGIN:-http://localhost:3001}
+      AllowedHosts: ${ALLOWED_HOSTS:-localhost;127.0.0.1;backend}
+    ports:
+      - "127.0.0.1:5080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  frontend:
+    build:
+      context: frontend/Import-pdf-excel-master
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5080/api}
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      - backend
+volumes:
+  pgdata:

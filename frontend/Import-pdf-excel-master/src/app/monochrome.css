@@ -1,0 +1,73 @@
+﻿/* Monochromatic Minimalism — semantic tokens shared by every screen. */
+:root,[data-theme="dark"] {
+  --background:#121212;--foreground:#E0E0E0;--surface:#121212;--surface-alt:#444444;
+  --border:#444444;--muted:#B0B0B0;--accent:#E0E0E0;--primary:#E0E0E0;--primary-hover:#B0B0B0;
+  --primary-foreground:#121212;--sidebar:#121212;--success:#B0B0B0;
+  --card:var(--surface);--card-foreground:var(--foreground);--secondary:var(--surface-alt);
+  --secondary-foreground:var(--foreground);--muted-foreground:var(--muted);--accent-foreground:var(--background);
+  --input:var(--border);--ring:#888888;--destructive:#b43f4c;--destructive-foreground:#fff;
+  --shadow:0 4px 20px #00000012;--radius:.75rem;color-scheme:dark;
+}
+[data-theme="light"] {
+  --background:#E0E0E0;--foreground:#121212;--surface:#E0E0E0;--surface-alt:#B0B0B0;
+  --border:#888888;--muted:#444444;--accent:#121212;--primary:#121212;--primary-hover:#444444;
+  --primary-foreground:#E0E0E0;--sidebar:#E0E0E0;--success:#444444;
+  --ring:#444444;--shadow:0 4px 20px #00000004;color-scheme:light;
+}
+@theme inline {
+  --color-primary:var(--primary);--color-primary-foreground:var(--primary-foreground);
+  --color-card:var(--card);--color-card-foreground:var(--card-foreground);
+  --color-secondary:var(--secondary);--color-secondary-foreground:var(--secondary-foreground);
+  --color-muted-foreground:var(--muted-foreground);--color-accent:var(--accent);
+  --color-accent-foreground:var(--accent-foreground);--color-border:var(--border);
+  --color-input:var(--input);--color-ring:var(--ring);--color-destructive:var(--destructive);
+  --color-destructive-foreground:var(--destructive-foreground);
+}
+.theme-root,.topbar,.desktop-sidebar,.ui-card,.ui-input,.bank-account-card {
+  transition:background-color .2s ease,color .2s ease,border-color .2s ease;
+}
+::selection{background:#8885}
+.brand-art img{filter:grayscale(1)}
+.ui-hero,.accounts-heading{background:var(--surface);box-shadow:none;border-radius:16px;padding:28px}
+.ui-eyebrow{color:var(--muted);font-size:10px;letter-spacing:2px}
+.ui-title{letter-spacing:-1.2px;font-weight:700}.ui-description{line-height:1.8}
+.ui-card,.bank-account-card,.account-stat{border-radius:14px;box-shadow:var(--shadow)}
+.button-primary,.button-primary:hover,.button-primary[data-hovered="true"]{color:var(--primary-foreground);box-shadow:none}
+.button-primary{border:1px solid var(--primary);background:var(--primary)}
+.button-primary:hover{background:var(--primary-hover)}
+.button-secondary,.ui-input{box-shadow:none;border-radius:8px}
+.ui-input:focus-visible{outline:2px solid var(--ring);outline-offset:2px;box-shadow:none}
+input[type="checkbox"]{accent-color:var(--primary);width:16px;height:16px;flex-shrink:0}
+.nav-link.active{background:var(--surface-alt);color:var(--foreground);box-shadow:inset 0 0 0 1px var(--border)}
+.nav-link.active::before{background:var(--foreground)}.nav-caption{color:var(--muted)}
+.workspace-note{background:var(--surface-alt);color:var(--foreground);box-shadow:none}
+.navigation-tooltip{background:#121212!important;color:#E0E0E0!important;border-color:#888888}
+.profile-avatar{background:var(--surface-alt);color:var(--foreground);border-color:var(--border)}
+.ui-tag,.status-positive,.currency-badge{background:var(--surface-alt);color:var(--foreground);border:1px solid var(--border)}
+.metric-icon,.bank-emblem{background:var(--surface-alt);color:var(--foreground);border-color:var(--border)}
+.account-stat-primary{background:#121212;border-color:#444444;color:#E0E0E0}
+.account-stat-primary .stat-top,.account-stat-primary p,.account-stat-primary svg{color:#B0B0B0}
+.account-stat:hover,.bank-account-card:hover{box-shadow:0 8px 24px #0000000c}
+.accounts-heading .title-dot{color:var(--foreground)}
+.account-card-actions{background:var(--surface)}
+.auth-story{background:#121212;color:#E0E0E0}.auth-story h1 span,.auth-story-content .ui-eyebrow,.auth-flow{color:#E0E0E0}
+.auth-story-content>p:not(.ui-eyebrow),.auth-flow small{color:#B0B0B0}
+.auth-flow{background:#121212;border-color:#444444}.auth-mobile-brand{color:var(--foreground)}
+.theme-choice{display:block;height:auto;white-space:normal;padding:14px;border:1px solid var(--border);background:var(--surface);border-radius:12px}
+.theme-choice.selected{border-color:var(--foreground);box-shadow:0 0 0 1px var(--foreground)}
+.preview-light{background:#E0E0E0;color:#B0B0B0}.preview-dark{background:#121212;color:#444444}
+.theme-preview i:first-child{background:#888888}
+.photo-camera{color:var(--primary-foreground);box-shadow:none}
+.ui-file::file-selector-button{color:var(--primary-foreground)}
+.loading-skeleton{display:flex;align-items:center;gap:16px;width:100%;max-width:650px}
+.load-state{border-style:solid;border-radius:14px}
+.app-dialog[open]{animation:none}.app-dialog{border-radius:16px;box-shadow:0 24px 80px #0004}
+.client-card:hover{box-shadow:0 8px 24px #0000000a;border-color:var(--muted)}
+.read-only-notice,.success-notice{background:var(--surface-alt);color:var(--foreground);border:1px solid var(--border)}
+@media(max-width:620px){.ui-hero,.accounts-heading{padding:22px}}
+@media(prefers-reduced-motion:reduce){.theme-root,.topbar,.desktop-sidebar,.ui-card,.ui-input,.bank-account-card{transition:none}}
+
+.client-photo-button{height:auto;padding:0;flex-shrink:0}.client-photo-button:hover{background:transparent}
+/* Resolve aliases on the theme element, not on the document root. */
+[data-theme]{--card:var(--surface);--card-foreground:var(--foreground);--secondary:var(--surface-alt);--secondary-foreground:var(--foreground);--muted-foreground:var(--muted);--accent-foreground:var(--background);--input:var(--border)}
+
