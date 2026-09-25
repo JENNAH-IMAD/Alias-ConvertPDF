@@ -38,6 +38,14 @@ public class StatementTests
         Assert.Single(rows); Assert.Equal(1250.50m, rows[0].Credit); Assert.Equal(new DateOnly(2026, 9, 2), rows[0].TransactionDate);
         Assert.Null(ProfileTransactionExtractor.Amount("ambiguous", p));
     }
+    [Fact] public void IntermediateBalancesAreCheckedEvenWhenFinalBalanceMatches()
+    {
+        var s = Statement(); s.Transactions.First().Balance = 120;
+        var validator = new StatementValidator();
+        Assert.Contains(validator.Check(s).Issues, i => i.Code == "ROW_BALANCE_MISMATCH" && i.Row == 1);
+        s.Transactions.First().Balance = 125;
+        Assert.Empty(validator.Check(s).Issues);
+    }
     [Theory]
     [InlineData("UTF-8", "SAGE_X3")]
     [InlineData("Windows-1252", "SAGE100_STANDARD")]

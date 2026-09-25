@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { AnimatedCard as Card } from '@/components/ui/card';
 
 
@@ -8,7 +8,7 @@ import { useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './ui/tooltip';
 import { MotionConfig } from 'motion/react';
-import { LayoutDashboard, Users, Landmark, Wallet, Settings, Moon, Sun, Menu, X, LogOut, ChevronRight, FileText, Archive, FileOutput, FolderOpen } from 'lucide-react';
+import { LayoutDashboard, Users, Landmark, Wallet, Settings, Moon, Sun, Menu, X, LogOut, ChevronRight, FileText, FileOutput, FolderOpen } from 'lucide-react';
 import { useAuth } from './auth-context';
 import { useTheme } from './theme-context';
 import { Avatar } from './avatar';
@@ -18,8 +18,8 @@ import { BlurFade } from './ui/blur-fade';
 import { useCompactSidebar } from './use-compact-sidebar';
 
 const navigationGroups = [
-  { name: 'RELEVÉS ET ARCHIVES', items: [{ href: '/conversions', label: 'Conversions', icon: FileText }, { href: '/client-space', label: 'Espace clients', icon: FolderOpen }, { href: '/archives', label: 'Archives', icon: Archive }, { href: '/templates', label: 'Modèles d’export', icon: FileOutput }] },
   { name: 'ESPACE DE TRAVAIL', items: [{ href: '/dashboard', label: 'Vue d’ensemble', icon: LayoutDashboard }] },
+  { name: 'RELEVÉS BANCAIRES', items: [{ href: '/conversions', label: 'Conversions', icon: FileText }, { href: '/client-space', label: 'Espace clients', icon: FolderOpen }, { href: '/templates', label: 'Modèles d’export', icon: FileOutput }] },
   { name: 'RÉFÉRENTIELS', items: [{ href: '/clients', label: 'Clients', icon: Users }, { href: '/banks', label: 'Banques', icon: Landmark }, { href: '/bank-accounts', label: 'Comptes bancaires', icon: Wallet }] },
   { name: 'CONFIGURATION', items: [{ href: '/users', label: 'Utilisateurs', icon: Users }, { href: '/settings', label: 'Paramètres', icon: Settings }] },
 ];
@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     else if (isAuthenticated && authRoute) router.replace('/dashboard');
   }, [isReady, isAuthenticated, authRoute, router]);
 
-  const access: Record<string, string> = { '/conversions': 'statements.read', '/client-space': 'statements.read', '/archives': 'statements.read', '/templates': 'statements.read', '/dashboard': 'dashboard.read', '/clients': 'clients.read', '/banks': 'banks.read', '/bank-accounts': 'accounts.read' };
+  const access: Record<string, string> = { '/conversions': 'statements.read', '/client-space': 'statements.read', '/templates': 'statements.read', '/dashboard': 'dashboard.read', '/clients': 'clients.read', '/banks': 'banks.read', '/bank-accounts': 'accounts.read' };
   const permitted = (href: string) => href === '/users' ? user?.role === 'Admin' : href.startsWith('/statements/') ? can('statements.read') : !access[href] || can(access[href]);
   const groups = navigationGroups.map(g => ({ ...g, items: g.items.filter(i => permitted(i.href)) })).filter(g => g.items.length);
   const active = groups.flatMap(g => g.items).find(i => i.href === pathname);
@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   function navigation(mini: boolean) {
     return <>
       <Link href={groups[0]?.items[0]?.href || '/settings'} className="brand sidebar-brand" aria-label="ALIAS — Accueil" onClick={closeDrawer}><Brand compact={mini}/></Link>
-      <nav aria-label="Navigation principale" className="sidebar-nav">{groups.map(group => <div key={group.name} className="nav-group"><p className={`nav-caption ${mini ? 'sr-only' : ''}`}>{group.name}</p>{group.items.map(({ href, label, icon: Icon }) => {
+      <nav aria-label="Navigation principale" className="sidebar-nav" tabIndex={0}>{groups.map(group => <div key={group.name} className="nav-group"><p className={`nav-caption ${mini ? 'sr-only' : ''}`}>{group.name}</p>{group.items.map(({ href, label, icon: Icon }) => {
         const link = <Link href={href} aria-label={label} aria-current={pathname === href ? 'page' : undefined} className={`nav-link ${pathname === href ? 'active' : ''}`} onClick={closeDrawer}><Icon size={20} strokeWidth={1.7}/>{!mini && <><span className="nav-label">{label}</span>{pathname === href && <ChevronRight size={14} className="ml-auto"/>}</>}</Link>;
         return mini ? <Tooltip key={href}><TooltipTrigger asChild>{link}</TooltipTrigger><TooltipContent side="right" className="navigation-tooltip">{label}</TooltipContent></Tooltip> : <span key={href} className="nav-item">{link}</span>;
       })}</div>)}</nav>

@@ -15,10 +15,10 @@ const buttonVariants = cva(
         destructive:
           "bg-rose-600 text-white shadow-sm hover:bg-rose-700",
         outline:
-          "border border-[var(--border)] bg-[var(--surface)] shadow-sm hover:bg-[var(--surface-alt)]",
+          "border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-sm hover:bg-[var(--surface-alt)]",
         secondary:
           "bg-[var(--surface-alt)] text-[var(--foreground)] shadow-sm hover:bg-[var(--border)]",
-        ghost: "hover:bg-[var(--surface-alt)] hover:text-[var(--foreground)]",
+        ghost: "bg-transparent text-[var(--foreground)] hover:bg-[var(--surface-alt)] hover:text-[var(--foreground)]",
         link: "text-[var(--accent)] underline-offset-4 hover:underline",
       },
       size: {

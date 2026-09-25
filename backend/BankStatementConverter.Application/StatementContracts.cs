@@ -2,8 +2,8 @@
 namespace BankStatementConverter.Application;
 
 public record StatementActor(Guid Id, bool Admin);
-public record StatementRow(Guid Id, Guid BankAccountId, Guid ClientId, string Client, string Bank, string Account, string OriginalFileName, DateOnly? PeriodStart, DateOnly? PeriodEnd, string Currency, string Status, int TransactionCount, DateTime CreatedAt, DateTime? ArchivedAt, Guid Version);
-public record TransactionInput(DateOnly? TransactionDate, DateOnly? ValueDate, string Reference, string Description, decimal? Debit, decimal? Credit, decimal? Balance);
+public record StatementRow(Guid Id, Guid BankAccountId, Guid ClientId, string Client, string Bank, string Account, string OriginalFileName, DateOnly? PeriodStart, DateOnly? PeriodEnd, string Currency, string Status, int TransactionCount, int ExportCount, DateTime CreatedAt, DateTime? ArchivedAt, Guid Version);
+public record TransactionInput(DateOnly? TransactionDate, DateOnly? ValueDate, string Reference, string Description, decimal? Debit, decimal? Credit, decimal? Balance, Guid? Id = null);
 public record ReviewInput(Guid Version, DateOnly? PeriodStart, DateOnly? PeriodEnd, decimal? OpeningBalance, decimal? ClosingBalance, List<TransactionInput> Transactions);
 public record VersionInput(Guid Version);
 public record ProcessInput(Guid Version, Guid? ProfileId);

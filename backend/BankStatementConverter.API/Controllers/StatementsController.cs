@@ -14,9 +14,11 @@ namespace BankStatementConverter.API;
 public class StatementsController(StatementService statements, PdfProcessingService processor, IStatementValidator validator, StatementExportService exports, IFileStorageService files) : ControllerBase
 {
     private StatementActor Actor => new(Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), User.IsInRole("Admin"));
+    [HttpGet("/api/clients/{clientId:guid}/archive-usage")]
+    public Task<object> ArchiveUsage(Guid clientId, CancellationToken ct) => statements.ArchiveUsage(clientId, ct);
     [HttpGet, HttpGet("/api/archives")]
-    public Task<PageResult<StatementRow>> List(CancellationToken ct, int page = 1, Guid? clientId = null, Guid? accountId = null, bool archived = false, string? status = null)
-        => statements.List(Actor, page, clientId, accountId, archived || Request.Path == "/api/archives", status, ct);
+    public Task<PageResult<StatementRow>> List(CancellationToken ct, int page = 1, int pageSize = 20, Guid? clientId = null, Guid? accountId = null, bool archived = false, string? status = null, Guid? bankId = null, DateOnly? from = null, DateOnly? to = null, bool? exported = null)
+        => statements.List(Actor, page, pageSize, clientId, accountId, archived || Request.Path == "/api/archives", status, ct, bankId, from, to, exported);
     [HttpGet("{id:guid}")]
     public async Task<object> Get(Guid id, CancellationToken ct)
     {
@@ -27,7 +29,7 @@ public class StatementsController(StatementService statements, PdfProcessingServ
             Transactions = s.Transactions.OrderBy(t => t.Position).Select(t => new { t.Id, t.Position, t.TransactionDate, t.ValueDate, t.Reference, t.Description, t.Debit, t.Credit, t.Balance, t.ConfidenceScore, t.IsValidated }),
             Check = validator.Check(s), History = s.History.OrderByDescending(h => h.CreatedAt).Select(h => new { h.Id, h.Action, h.Status, h.Message, h.UserId, h.CreatedAt }),
             Exports = s.Exports.OrderByDescending(e => e.CreatedAt).Select(e => new { e.Id, e.FileName, e.FileSize, e.Status, e.CreatedAt }),
-            s.RawText };
+            s.RawText, ArchiveCount = await statements.ArchiveCount(s.BankAccount.ClientId, ct), ArchiveLimit = StatementService.ArchiveLimit };
     }
     [HttpPost("/api/bank-accounts/{accountId:guid}/statements/upload"), RequestSizeLimit(21 * 1024 * 1024)]
     public async Task<IActionResult> Upload(Guid accountId, IFormFile file, CancellationToken ct)
@@ -45,9 +47,21 @@ public class StatementsController(StatementService statements, PdfProcessingServ
     public async Task<IActionResult> Validate(Guid id, VersionInput input, CancellationToken ct) { await statements.Validate(id, input.Version, Actor, ct); return NoContent(); }
     [HttpPost("{id:guid}/archive")]
     public async Task<IActionResult> Archive(Guid id, VersionInput input, CancellationToken ct) { await statements.Archive(id, input.Version, Actor, ct); return NoContent(); }
+    [HttpPost("{id:guid}/reopen")]
+    public async Task<IActionResult> Reopen(Guid id, VersionInput input, CancellationToken ct) { await statements.Reopen(id, input.Version, Actor, ct); return NoContent(); }
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, VersionInput input, CancellationToken ct) { await statements.Delete(id, input.Version, Actor, ct); return NoContent(); }
     [HttpGet("{id:guid}/pdf")]
     public async Task<IActionResult> Pdf(Guid id, CancellationToken ct)
     { var s = await statements.Load(id, Actor, ct); return File(await files.ReadAsync(s.StorageKey, ct), "application/pdf", s.OriginalFileName); }
+    [HttpGet("{id:guid}/converted/download")]
+    public async Task<IActionResult> Converted(Guid id, CancellationToken ct)
+    { var f = await exports.Converted(id, Actor, ct); return File(f.Bytes, f.MimeType, f.Name); }
+    [HttpGet("{id:guid}/converted/preview")]
+    public async Task<object> ConvertedPreview(Guid id, CancellationToken ct)
+    { var f = await exports.Converted(id, Actor, ct, 30); return new { text = Encoding.UTF8.GetString(f.Bytes), limitedTo = 30 }; }
+    [HttpGet("/api/statement-exports/{id:guid}/preview")]
+    public Task<object> StoredPreview(Guid id, CancellationToken ct) => exports.StoredPreview(id, Actor, ct);
     [HttpPost("{id:guid}/export-preview")]
     public async Task<object> Preview(Guid id, ExportInput input, CancellationToken ct)
     { var (bytes, template) = await exports.Preview(id, input, Actor, ct); Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); return new { text = Encoding.GetEncoding(template.Encoding).GetString(bytes), limitedTo = 10 }; }

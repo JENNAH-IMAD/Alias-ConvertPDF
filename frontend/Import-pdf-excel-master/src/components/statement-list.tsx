@@ -1,22 +1,76 @@
-﻿'use client';
-import { useCatalog } from '@/services/use-catalog';
+'use client';
+
 import Link from 'next/link';
-import { useState } from 'react';
-import { Archive, FileText, ArrowUpRight } from 'lucide-react';
-import { Page, Client, Account } from '@/services/api';
-import { Statement,statusLabel } from '@/services/statements';
-import { useApi } from '@/services/use-api';
+import { useRouter } from 'next/navigation';
+import { FormEvent, useState } from 'react';
+import { ArchiveRestore, ArrowUpRight, FileCheck2, FileSpreadsheet, FileText, Pencil, Trash2 } from 'lucide-react';
+import { useAuth } from '@/components/auth-context';
+import { Dialog } from '@/components/dialog';
 import { LoadState, Pagination } from '@/components/resource-editor';
+import { StatementStatus } from '@/components/statement-status';
+import { Button } from '@/components/ui/button';
 import { AnimatedCard as Card } from '@/components/ui/card';
+import { Page, request } from '@/services/api';
+import { Statement, statusLabel } from '@/services/statements';
+import { useApi } from '@/services/use-api';
 
-export function StatementList({archived=false,clientId='',accountId=''}:{archived?:boolean;clientId?:string;accountId?:string}) {
- const [page,setPage]=useState(1);const [status,setStatus]=useState('');
- const {data,error,loading}=useApi<Page<Statement>>(`/statements?page=${page}&archived=${archived}&status=${status}${clientId?'&clientId='+clientId:''}${accountId?'&accountId='+accountId:''}`);
- return <div className="ui-page"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">{archived?'Archives des relevés':'Relevés bancaires'}</h2><label className="text-sm">Statut<select className="ui-input mt-2" value={status} onChange={e=>{setStatus(e.target.value);setPage(1);}}><option value="">Tous les statuts</option>{Object.entries(statusLabel).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label></div><LoadState error={error} loading={loading} empty={!data?.items.length}/><div className="grid gap-4 lg:grid-cols-2">{data?.items.map(s=><Card key={s.id} className="ui-card"><div className="flex items-start gap-3"><FileText className="shrink-0 muted" size={22}/><div className="min-w-0 flex-1"><h3 className="font-semibold break-all">{s.originalFileName}</h3><p className="ui-description">{s.client} · {s.bank}</p></div><span className="ui-tag">{statusLabel[s.status]||s.status}</span></div><div className="ui-row"><span>Compte</span><span className="break-all">{s.account}</span></div><div className="ui-row"><span>Période</span><span>{s.periodStart||'À renseigner'} — {s.periodEnd||'—'}</span></div><div className="ui-row"><span>Opérations</span><span>{s.transactionCount} · {s.currency}</span></div><div className="mt-4 flex justify-between items-center gap-3"><span className="muted text-xs">{new Date(s.createdAt).toLocaleDateString('fr-FR')}</span><Link className="button-secondary" href={'/statements/'+s.id}>Ouvrir le relevé<ArrowUpRight size={15}/></Link></div></Card>)}</div>{data&&<Pagination page={page} total={data.total} onChange={setPage}/>}</div>;
-}
-export function ArchivePage() {
- const [client,setClient]=useState('');const [account,setAccount]=useState('');
- const {data:clients}=useCatalog<Client>('/clients');const {data:accounts}=useCatalog<Account>('/bank-accounts');
- return <div className="ui-page"><section className="ui-hero"><p className="ui-eyebrow">CONSERVATION ET TRAÇABILITÉ</p><h1 className="ui-title">Archives clients</h1><p className="ui-description">Retrouvez les PDF originaux, les opérations, les exports et leur historique sans retraitement.</p></section><div className="ui-card flex flex-wrap gap-4"><Archive size={23}/><label className="flex-1">Client<select className="ui-input mt-2" value={client} onChange={e=>{setClient(e.target.value);setAccount('');}}><option value="">Tous les clients</option>{clients?.items.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className="flex-1">Compte<select className="ui-input mt-2" value={account} onChange={e=>setAccount(e.target.value)}><option value="">Tous les comptes</option>{accounts?.items.filter(a=>!client||a.clientId===client).map(a=><option key={a.id} value={a.id}>{a.bank} · {a.accountNumber}</option>)}</select></label></div><StatementList key={client+account} archived clientId={client} accountId={account}/></div>;
-}
+type Props = { archived?: boolean; clientId?: string; accountId?: string; filters?: string; clientWorkspace?: boolean };
+const processingStatuses = new Set(['QUEUED', 'ANALYZING', 'OCR_PROCESSING', 'EXPORTING']);
 
+export function StatementList({ archived = false, clientId = '', accountId = '', filters = '', clientWorkspace = false }: Props) {
+  const router = useRouter();
+  const { can } = useAuth();
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('');
+  const [deleting, setDeleting] = useState<Statement | null>(null);
+  const [busyId, setBusyId] = useState('');
+  const [actionError, setActionError] = useState('');
+  const query = `/statements?page=${page}&pageSize=20&archived=${archived}&status=${status}${clientId ? '&clientId=' + clientId : ''}${accountId ? '&accountId=' + accountId : ''}${filters}`;
+  const { data, error, loading, reload } = useApi<Page<Statement>>(query);
+  const writable = can('statements.write');
+
+  async function reopen(statement: Statement) {
+    if (busyId) return;
+    setBusyId(statement.id); setActionError('');
+    try {
+      await request(`/statements/${statement.id}/reopen`, { method: 'POST', body: JSON.stringify({ version: statement.version }) });
+      router.push(`/statements/${statement.id}#review`);
+    } catch (reason) { setActionError((reason as Error).message); }
+    finally { setBusyId(''); }
+  }
+
+  async function remove(event: FormEvent) {
+    event.preventDefault();
+    if (!deleting || busyId) return;
+    setBusyId(deleting.id); setActionError('');
+    try {
+      await request(`/statements/${deleting.id}`, { method: 'DELETE', body: JSON.stringify({ version: deleting.version }) });
+      setDeleting(null);
+      if (data?.items.length === 1 && page > 1) setPage(page - 1); else reload();
+    } catch (reason) { setActionError((reason as Error).message); }
+    finally { setBusyId(''); }
+  }
+
+  return <div className="ui-page">
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div><h2 className="text-lg font-semibold">{clientWorkspace ? 'Tous les traitements de relevés' : archived ? 'Archives des relevés' : 'Relevés bancaires'}</h2>{clientWorkspace && <p className="ui-description">Relevés importés, en cours, à vérifier, validés, exportés, échoués et archivés.</p>}</div>
+      <label className="text-sm">Statut<select className="ui-input mt-2" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}><option value="">Tous les statuts</option>{Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+    </div>
+    <LoadState error={error || actionError} loading={loading} empty={!data?.items.length}/>
+    <div className="grid gap-4 lg:grid-cols-2">{data?.items.map(statement => <Card key={statement.id} className="ui-card client-archive-card">
+      <div className="flex flex-wrap items-start gap-3"><FileText className="shrink-0 accent-text" size={22}/><div className="min-w-0 flex-1"><h3 className="font-semibold break-all">{statement.originalFileName}</h3><p className="ui-description">{statement.client} · {statement.bank}</p></div><StatementStatus status={statement.status}/></div>
+      <div className="ui-row"><span>Compte bancaire</span><span className="break-all">{statement.account}</span></div>
+      <div className="ui-row"><span>Période du relevé</span><span>{statement.periodStart || 'À renseigner'} — {statement.periodEnd || '—'}</span></div>
+      <div className="archive-file-summary"><span><FileText size={15}/>PDF original</span><span className={statement.transactionCount ? 'available' : 'unavailable'}><FileSpreadsheet size={15}/>{statement.transactionCount ? `Conversion · ${statement.transactionCount} opération(s)` : 'Conversion indisponible'}</span><span className={statement.exportCount ? 'available' : 'unavailable'}><FileCheck2 size={15}/>{statement.exportCount ? `${statement.exportCount} export(s) final(aux)` : 'Aucun export final'}</span></div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><span className="muted text-xs">{statement.archivedAt ? 'Archivé' : 'Importé'} le {new Date(statement.archivedAt || statement.createdAt).toLocaleDateString('fr-FR')}</span><div className="document-actions">
+        <Link className="button-secondary" href={`/statements/${statement.id}`}>Consulter</Link>
+        <Link className="button-primary" href={`/statements/${statement.id}#files`}>Fichiers <ArrowUpRight size={15}/></Link>
+        {clientWorkspace && writable && statement.archivedAt && <Button variant="ghost" className="button-secondary" disabled={busyId === statement.id} onClick={() => reopen(statement)}><ArchiveRestore size={15}/>{busyId === statement.id ? 'Réouverture…' : 'Rouvrir et modifier'}</Button>}
+        {clientWorkspace && writable && !statement.archivedAt && <Link className="button-secondary" aria-disabled={processingStatuses.has(statement.status)} href={`/statements/${statement.id}#review`}><Pencil size={15}/>Modifier</Link>}
+        {clientWorkspace && writable && <Button variant="ghost" className="button-secondary danger-button" disabled={busyId === statement.id || processingStatuses.has(statement.status)} onClick={() => { setActionError(''); setDeleting(statement); }}><Trash2 size={15}/>Supprimer</Button>}
+      </div></div>
+    </Card>)}</div>
+    {data && <Pagination page={page} total={data.total} onChange={setPage}/>}
+    {deleting && <Dialog title="Supprimer le relevé bancaire" onClose={() => setDeleting(null)} busy={busyId === deleting.id}><form onSubmit={remove} className="space-y-5"><p className="font-semibold break-all">{deleting.originalFileName}</p><p className="ui-description">Cette suppression est définitive. Le PDF original, les opérations extraites, l’historique et tous les fichiers exportés seront supprimés.</p>{actionError && <p role="alert" className="danger-button">{actionError}</p>}<div className="flex flex-wrap gap-3"><Button type="button" variant="ghost" className="button-secondary" disabled={Boolean(busyId)} onClick={() => setDeleting(null)}>Annuler</Button><Button type="submit" variant="destructive" disabled={Boolean(busyId)}>{busyId ? 'Suppression…' : 'Supprimer définitivement'}</Button></div></form></Dialog>}
+  </div>;
+}

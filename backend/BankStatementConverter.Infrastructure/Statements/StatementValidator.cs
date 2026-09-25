@@ -11,6 +11,7 @@ public sealed class StatementValidator : IStatementValidator
         if (s.PeriodStart is null || s.PeriodEnd is null || s.PeriodStart > s.PeriodEnd) issues.Add(new("PERIOD", "Renseignez une période valide."));
         if (s.OpeningBalance is null || s.ClosingBalance is null) issues.Add(new("BALANCES", "Renseignez les soldes initial et final."));
         var seen = new HashSet<string>();
+        decimal? runningBalance = s.OpeningBalance;
         foreach (var t in s.Transactions.OrderBy(t => t.Position))
         {
             if (t.TransactionDate is null) issues.Add(new("DATE", "Date obligatoire.", t.Position));
@@ -18,6 +19,9 @@ public sealed class StatementValidator : IStatementValidator
             if (string.IsNullOrWhiteSpace(t.Description)) issues.Add(new("DESCRIPTION", "Libellé obligatoire.", t.Position));
             if ((t.Debit ?? 0) < 0 || (t.Credit ?? 0) < 0 || ((t.Debit ?? 0) > 0) == ((t.Credit ?? 0) > 0)) issues.Add(new("AMOUNT", "Un seul montant positif : débit ou crédit.", t.Position));
             if (t.Currency != s.Currency) issues.Add(new("CURRENCY", "Devise incompatible.", t.Position));
+            runningBalance += (t.Credit ?? 0) - (t.Debit ?? 0);
+            if (t.Balance.HasValue && runningBalance.HasValue && Math.Abs(t.Balance.Value - runningBalance.Value) > 0.01m)
+                issues.Add(new("ROW_BALANCE_MISMATCH", "Le solde de cette opération ne correspond pas au solde calculé dans l'ordre des lignes.", t.Position));
             if (!seen.Add($"{t.TransactionDate}|{t.Reference}|{t.Description}|{t.Debit}|{t.Credit}")) issues.Add(new("DUPLICATE", "Opération identique : vérifiez le doublon.", t.Position));
         }
         var debit = s.Transactions.Sum(t => t.Debit ?? 0); var credit = s.Transactions.Sum(t => t.Credit ?? 0);

@@ -45,7 +45,9 @@ public sealed class ExportTemplateService(AppDbContext db)
             "CUSTOM_CSV" => new[] { "Date", "Description", "Debit", "Credit", "Balance" },
             _ => throw new AppException(400, "Type inconnu.")
         };
-        await Save(null, new(type == "SAGE100_STANDARD" ? "Sage 100 — à configurer" : type == "SAGE_X3" ? "Sage X3 — à configurer" : "CSV personnalisé", type + "_" + Guid.NewGuid().ToString("N")[..6], type, type == "SAGE100_STANDARD" ? "Windows-1252" : "UTF-8", ";", "dd/MM/yyyy", ",", 2, true, true, null,
-            fields.Select((f, i) => new TemplateFieldInput(f, f, i, f is "Date" or "Description" or "Account", "")).ToList()), ct);
+        if (await db.ExportTemplates.AnyAsync(t => t.Code == type, ct)) return;
+        var labels = new Dictionary<string, string> { ["Date"] = "Date", ["Account"] = "Compte", ["Description"] = "Libellé", ["Amount"] = "Montant", ["Direction"] = "Sens", ["Analytic"] = "Analytique", ["Journal"] = "Journal", ["Debit"] = "Débit", ["Credit"] = "Crédit", ["Reference"] = "Référence", ["Balance"] = "Solde" };
+        await Save(null, new(type == "SAGE100_STANDARD" ? "Sage 100 – Standard" : type == "SAGE_X3" ? "Sage X3 – Import Banque" : "CSV personnalisé", type, type, type == "SAGE100_STANDARD" ? "Windows-1252" : "UTF-8", type == "CUSTOM_CSV" ? "," : ";", "dd/MM/yyyy", ",", 2, true, true, null,
+            fields.Select((f, i) => new TemplateFieldInput(f, labels[f], i, f is "Date" or "Description" or "Account", "")).ToList()), ct);
     }
 }

@@ -50,8 +50,11 @@ public sealed class PdfProcessingService(AppDbContext db, StatementService state
         {
             var bytes = await files.ReadAsync(s.StorageKey, ct); var analysis = analyzer.Analyze(bytes);
             s.PageCount = analysis.PageCount; s.PdfType = analysis.Type;
-            StatementService.History(s, s.CreatedBy, "PDF_ANALYZED", $"{analysis.PageCount} pages ; {analysis.Type}.");
+            var documentType = analysis.Type switch { "TEXT_PDF" => "PDF avec texte", "SCANNED_PDF" => "PDF numérisé", _ => "PDF mixte" };
+            StatementService.History(s, s.CreatedBy, "PDF_ANALYZED", $"{analysis.PageCount} page(s) ; {documentType}.");
             var text = string.Join('\n', analysis.Pages); decimal? confidence = null;
+            s.RawText = text;
+            await db.SaveChangesAsync(ct);
             var profiles = await db.BankStatementProfiles.Where(p => p.BankId == s.BankAccount.BankId && p.IsActive).ToListAsync(ct);
             var profile = s.ProfileId.HasValue ? profiles.SingleOrDefault(p => p.Id == s.ProfileId) : null;
             if (analysis.Type != "TEXT_PDF" || profile?.OcrRequired == true)
@@ -69,20 +72,19 @@ public sealed class PdfProcessingService(AppDbContext db, StatementService state
             {
                 s.ProfileId = profile.Id;
                 StatementService.History(s, s.CreatedBy, "BANK_DETECTED", $"Profil {profile.Code}, version {profile.Version}.");
-                s.Transactions = extractor.Extract(text, profile, s.Currency, confidence);
+                s.Transactions = extractor.Extract(text, profile, s.Currency, confidence, ct);
                 s.Status = "REVIEW_REQUIRED"; s.Message = $"{s.Transactions.Count} opérations proposées. Vérifiez toutes les lignes, la période et les soldes avant validation.";
                 StatementService.History(s, s.CreatedBy, "TRANSACTIONS_EXTRACTED", s.Message);
             }
             StatementService.History(s, s.CreatedBy, "PROCESS_COMPLETED", s.Message); await db.SaveChangesAsync(ct);
             logger.LogInformation("Traitement du relevé {Id} terminé : {Status}", id, s.Status);
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex)
         {
             // Reload tracked state so a failed save cannot accidentally persist partial transactions.
             db.ChangeTracker.Clear(); s = await statements.Load(id, new(Guid.Empty, true), CancellationToken.None);
             s.Status = s.Status == "OCR_PROCESSING" ? "OCR_FAILED" : "EXTRACTION_FAILED";
-            s.Message = ex is AppException ? ex.Message : "Extraction impossible. Vérifiez le PDF ou utilisez la revue manuelle.";
+            s.Message = ex is AppException ? ex.Message : ex is OperationCanceledException ? "Traitement interrompu ou délai dépassé. Vous pouvez le relancer." : "Extraction impossible. Vérifiez le PDF ou utilisez la revue manuelle.";
             StatementService.History(s, s.CreatedBy, s.Status, s.Message); await db.SaveChangesAsync(CancellationToken.None);
             logger.LogWarning("Traitement {Id} échoué : {Type}", id, ex.GetType().Name);
         }

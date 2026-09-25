@@ -14,12 +14,13 @@ public sealed class ProfileTransactionExtractor
         normalized = normalized.Replace(profile.DecimalSeparator, ".");
         return decimal.TryParse(normalized, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value) ? value : null;
     }
-    public List<BankTransaction> Extract(string text, BankStatementProfile profile, string currency, decimal? confidence)
+    public List<BankTransaction> Extract(string text, BankStatementProfile profile, string currency, decimal? confidence, CancellationToken ct = default)
     {
         var pattern = new Regex(profile.TransactionPattern, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
         var result = new List<BankTransaction>();
         foreach (var line in text.Split('\n'))
         {
+            ct.ThrowIfCancellationRequested();
             var match = pattern.Match(line.Trim());
             if (!match.Success) continue;
             DateOnly? Date(string group) => DateOnly.TryParseExact(match.Groups[group].Value, profile.DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : null;

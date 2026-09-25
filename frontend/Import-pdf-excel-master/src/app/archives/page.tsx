@@ -1,2 +1,5 @@
-﻿import { ArchivePage } from '@/components/statement-list';
-export default ArchivePage;
+import { redirect } from 'next/navigation';
+
+export default function ArchivesRedirect() {
+  redirect('/client-space');
+}

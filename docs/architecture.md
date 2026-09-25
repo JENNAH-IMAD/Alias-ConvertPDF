@@ -1,11 +1,13 @@
 ﻿# Architecture de ReleveFlow
 
-L'application gère les clients, banques et comptes bancaires d'un cabinet partagé.
+L'application gère les référentiels d'un cabinet et les relevés bancaires,
+depuis le dépôt PDF jusqu'aux exports et aux archives.
 
 ```text
 frontend/Import-pdf-excel-master/src/
   app/           Pages : connexion, inscription, tableau de bord,
-                 clients, banques, comptes, utilisateurs et paramètres
+                 clients, banques, comptes, utilisateurs et paramètres,
+                 conversions, détail relevé, modèles, espace client, archives
   components/    Formulaires, dialogues, avatars et thèmes
   services/      Client HTTP typé et chargement des données
 
@@ -17,6 +19,7 @@ backend/
     Identity/       Authentification, utilisateurs, permissions et sessions
     Media/          Photos des clients et logos des banques
     Persistence/    DbContext et initialisation des données
+    Statements/     Stockage privé, PDF/OCR, extraction, revue, exports et file de traitement
     Migrations/     Historique des évolutions du schéma
   BankStatementConverter.API/
     Controllers/    Adaptation HTTP et autorisations
@@ -29,16 +32,20 @@ scripts/                                  Démarrage, contrôle et nettoyage
 
 Domain ne dépend pas des autres couches. Application référence Domain.
 Infrastructure implémente les contrats Application et utilise EF Core/Npgsql.
-Les contrôleurs dépendent des interfaces Application ; l'API référence
-Infrastructure pour l'assemblage des dépendances, la santé et l'initialisation.
-Les images restent en PostgreSQL : aucun stockage de documents n'est nécessaire.
+Les contrôleurs des référentiels dépendent des interfaces Application.
+Les contrôleurs des relevés utilisent les services Infrastructure et les contrats
+Application ; le contrôleur de profils utilise actuellement le DbContext.
+Le stockage, l'analyse PDF, l'OCR, la validation et l'export disposent d'interfaces
+substituables. Les images des référentiels restent en PostgreSQL ; les PDF et exports
+sont conservés dans un stockage privé, servi uniquement par des routes autorisées.
 
-Les noms techniques des projets sont conservés pour ne pas casser les outils
-de lancement existants ; ils ne reflètent plus le périmètre fonctionnel.
+Les noms techniques des projets sont conservés pour les outils de lancement existants.
 
 ## Données
 
-Tables métier : Users, Clients, Banks et BankAccounts.
+Référentiels : Users, Clients, Banks et BankAccounts.
+Relevés : BankStatements, BankTransactions, BankStatementProfiles,
+ExportTemplates, ExportTemplateFields, StatementExports et ProcessingHistories.
 Les utilisateurs partagent les référentiels selon leurs permissions. Admin dispose
 de tous les droits et gère les utilisateurs. Les photos clients et logos sont limités
 à 2 Mo. Les comptes conservent leur devise, journal et compte comptable.
@@ -94,7 +101,10 @@ existantes et reconstruire une base neuve. La migration RemoveDocumentProcessing
 supprime exclusivement les cinq tables des fonctionnalités retirées. Elle ne
 modifie aucune ligne des quatre tables métier conservées. Les anciens noms ne
 subsistent que dans cet historique technique ; aucun endpoint ou moteur associé
-n'est enregistré dans l'application. Ne pas effacer les migrations déjà appliquées.
+n'est réactivé. Les migrations additives `StatementWorkspace` et
+`StatementIdentifiers` installent le nouveau modèle documentaire. Elles ne
+recréent aucune banque, aucun client ni compte fictif. Ne pas effacer les migrations
+déjà appliquées. Le [guide documentaire](statements.md) décrit le nouveau moteur.
 
 ## Vérifications
 
@@ -128,6 +138,11 @@ Motion anime les pages, cartes, dialogues, connexion et menu. Blur Fade provient
 respectent `useReducedMotion`, avec une politique globale `MotionConfig`.
 Les effets CSS respectent également la réduction des animations.
 
+La palette neutre est désormais complétée d'accents bleus pour les actions et
+la navigation, et de vert/ambre/rouge pour les états des relevés. Les libellés et
+icônes complètent la couleur. Le menu conserve le logo et le profil visibles
+pendant le défilement de ses liens ; la vue d'ensemble apparaît en premier.
+
 `components/ui/sidebar.tsx` compose Button et Tooltip avec Motion. Le bouton
 expose `aria-expanded`. `use-compact-sidebar.ts` mémorise le choix dans
 `alias-sidebar-compact` et prévoit un repli si le stockage est indisponible.
@@ -137,6 +152,13 @@ Sources : https://ui.shadcn.com/docs/components,
 https://magicui.design/docs/components/blur-fade et https://motion.dev/docs/react.
 Les licences locales figurent dans `src/components/ui`.
 
-Aucune modification des API, des permissions ou de la base de données.
+La refonte visuelle ne change pas les règles métier. Le module documentaire ajoute
+les permissions `statements.read` et `statements.write`, les routes et tables
+décrites dans le [guide](statements.md).
+
+L'archive client est limitée à cinq relevés importés, tous comptes et auteurs confondus.
+Une transaction verrouille le client avant de compter et d'importer. La migration
+de données `FrenchExportPresets` installe les trois modèles demandés sans modifier
+les référentiels ni les modèles existants.
 
 
