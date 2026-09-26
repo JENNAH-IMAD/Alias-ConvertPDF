@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.next/
+.env
+.env.*
+!.env.example
+**/.env.local
+uploads/
+.local/
+TestResults/
+*.user
+**/*.tsbuildinfo
+
+# Configuration locale contenant les secrets de developpement
+backend/BankStatementConverter.API/appsettings.Development.json

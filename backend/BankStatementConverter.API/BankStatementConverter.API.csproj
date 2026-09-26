@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk.Web"><ItemGroup>
+<ProjectReference Include="../BankStatementConverter.Infrastructure/BankStatementConverter.Infrastructure.csproj" />
+<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.22" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.22"><PrivateAssets>all</PrivateAssets></PackageReference>
+<PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+</ItemGroup><ItemGroup><Content Include="../ocr/bmce.cjs" Link="ocr/bmce.cjs" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /><Content Include="../ocr/package*.json" Link="ocr/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /><Content Include="../ocr/tessdata/eng.traineddata" Link="ocr/tessdata/eng.traineddata" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup></Project>
