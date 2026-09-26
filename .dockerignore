@@ -6,3 +6,4 @@
 **/.git
 **/.env*
 uploads
+data/snapshot

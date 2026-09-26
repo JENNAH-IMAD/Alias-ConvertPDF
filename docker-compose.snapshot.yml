@@ -1,0 +1,65 @@
+name: releveflow-snapshot
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: convertbank
+      POSTGRES_USER: converter
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - snapshot_pgdata:/var/lib/postgresql
+      - ./data/snapshot:/snapshot:ro
+      - ./scripts/restore-snapshot.sh:/docker-entrypoint-initdb.d/10-restore.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /var/lib/postgresql/.snapshot-restored && pg_isready -h 127.0.0.1 -U converter -d convertbank"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  files-init:
+    image: postgres:18-alpine
+    user: root
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        if [ ! -f /target/.snapshot-restored ]; then
+          cp -Rn /snapshot/files/. /target/
+          chown -R 1654:1654 /target
+          touch /target/.snapshot-restored
+        fi
+    volumes:
+      - ./data/snapshot:/snapshot:ro
+      - snapshot_uploads:/target
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      ConnectionStrings__Default: Host=postgres;Database=convertbank;Username=converter;Password=${POSTGRES_PASSWORD}
+      Jwt__Key: ${JWT_KEY:?Set JWT_KEY in .env}
+      Seed__DemoData: "false"
+      Database__AutoMigrate: "true"
+      Swagger__Enabled: "true"
+      Cors__Origins__0: ${FRONTEND_ORIGIN:-http://localhost:3002}
+      AllowedHosts: ${ALLOWED_HOSTS:-localhost;127.0.0.1;backend}
+      Storage__Root: /app/uploads
+    ports:
+      - "127.0.0.1:5081:8080"
+    volumes:
+      - snapshot_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      files-init:
+        condition: service_completed_successfully
+  frontend:
+    build:
+      context: frontend/Import-pdf-excel-master
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5081/api}
+    ports:
+      - "127.0.0.1:3002:3000"
+    depends_on:
+      - backend
+volumes:
+  snapshot_pgdata:
+  snapshot_uploads:

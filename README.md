@@ -1,5 +1,9 @@
 # Bank Statement Converter
 
+## Retrouver les donnees actuelles sur un autre PC
+
+La branche `version-4` inclut une sauvegarde complete de la base et des documents du 26 septembre 2026. Suivre [le guide de restauration](data/snapshot/README.md) pour retrouver les comptes, clients, banques, modeles et historiques existants. Le lancement `docker compose -f docker-compose.snapshot.yml up --build -d` restaure automatiquement cette sauvegarde au premier demarrage, apres configuration de `.env`.
+
 Application de conversion de relevés PDF texte vers Sage 100 (TXT), Sage X3 (CSV) et CSV configurable. Le frontend Next.js existant est conservé : pages, navigation, cartes et thèmes clair/sombre. Ses données opérationnelles proviennent maintenant de l’API.
 
 ## Architecture
